@@ -15,16 +15,52 @@
         .deleteTask {
             font-size: small;
         }
+
+        .taskContent-input {
+            /* 我想把这个input充满 */
+            width: calc(100% - 180px);
+        }
+
+        .taskContent-span {
+            border-color: brown;
+        }
+
+        .taskTrailing {
+            /* float: right; */
+            display: inline-block;
+        }
     </style>
 </head>
 
 <body>
     <div class="task">
         <input type="checkbox">
-        <input type="text" class="taskContent">
-        <!-- TODO: 让 time, button 靠右 -->
-        <time datetime="2018-07-07" class="taskTime">timestamp</time>
-        <button class="deleteTask">Delete</button>
+        <!-- <span class="taskContent-span">3333333</span> -->
+        <input type="text" class="taskContent-input">
+
+        <!-- TODO: 让 time, deleteTask 按钮靠右 -->
+        <div class="taskTrailing">
+            <time datetime="2018-07-07" class="taskTime">精确到分钟</time>
+            <button class="deleteTask">Delete</button>
+        </div>
+    </div>
+    <div class="task">
+        <input type="checkbox">
+        <!-- <span class="taskContent-span">3333333</span> -->
+        <input type="text" class="taskContent-input">
+
+        <!-- TODO: 让 time, deleteTask 按钮靠右 -->
+        <div class="taskTrailing">
+            <time datetime="2018-07-07" class="taskTime">精确到分钟</time>
+            <button class="deleteTask">Delete</button>
+        </div>
+    </div>
+    <div> 
+        <!-- 紧贴在所有任务的底部 -->
+        <input type="text" class="addNewTask taskContent-input">
+        <div class="taskTrailing">
+            <button class="addTask">Add</button>
+        </div>
     </div>
 </body>
 
