@@ -18,7 +18,7 @@
 
         .taskContent-input {
             /* 我想把这个input充满 */
-            width: calc(100% - 180px);
+            width: calc(100% - 280px);
         }
 
         .taskContent-span {
@@ -33,35 +33,66 @@
 </head>
 
 <body>
-    <div class="task">
-        <input type="checkbox">
-        <!-- <span class="taskContent-span">3333333</span> -->
-        <input type="text" class="taskContent-input">
-
+    <div id="container">
         <!-- TODO: 让 time, deleteTask 按钮靠右 -->
-        <div class="taskTrailing">
-            <time datetime="2018-07-07" class="taskTime">精确到分钟</time>
-            <button class="deleteTask">Delete</button>
-        </div>
-    </div>
-    <div class="task">
-        <input type="checkbox">
         <!-- <span class="taskContent-span">3333333</span> -->
-        <input type="text" class="taskContent-input">
+    </div>
+    <div>
+        <!-- 紧贴在所有任务的底部，末尾总是有的输入框 -->
+        <input type="text" class="taskContent-input" id="addNewTask">
+        <div class="taskTrailing">
+            <button id="addTask">Add</button>
+        </div>
+    </div>
+    <script>
+        // TODO: 在监听事件这里就写成匿名函数
+        // TODO: 选择元素不要用ID
+        document.getElementById("addTask").addEventListener("click", addTask);
+        function addTask() {
+            if (document.getElementById("addNewTask").value !== "") {
+                document.getElementById("container").appendChild(createElement_taskItem());
+            }
+            document.getElementById("addNewTask").value = "";
+        }
+        function createElement_taskItem() {
+            let taskItem = createElementWithOneClass("div", "taskItem");
+            let checkbox = document.createElement("input");
+            let taskContent = createElementWithOneClass("input", "taskContent-input");
+            let taskTrailing = createElementWithOneClass("div", "taskTrailing");
+            let taskTime = createElementWithOneClass("time", "taskTime");
+            let deleteTask = createElementWithOneClass("button", "deleteTask");
 
-        <!-- TODO: 让 time, deleteTask 按钮靠右 -->
-        <div class="taskTrailing">
-            <time datetime="2018-07-07" class="taskTime">精确到分钟</time>
-            <button class="deleteTask">Delete</button>
-        </div>
-    </div>
-    <div> 
-        <!-- 紧贴在所有任务的底部 -->
-        <input type="text" class="addNewTask taskContent-input">
-        <div class="taskTrailing">
-            <button class="addTask">Add</button>
-        </div>
-    </div>
+            checkbox.setAttribute("type", "checkbox");
+            taskContent.setAttribute("type", "text");
+            taskContent.setAttribute("value", document.getElementById("addNewTask").value);
+            let timestamp = new Date();
+            //任务内容被用户编辑为空时的默认显示内容
+            taskContent.addEventListener("blur", function (event) {
+                if (event.target.value == "")
+                    event.target.value = "Untitled entry"
+            })
+            taskTime.setAttribute("datetime", timestamp.getTime());
+            taskTime.innerHTML = timestamp.toISOString();
+            deleteTask.innerHTML = "Delete";
+            // 删除任务按钮的点击事件
+            deleteTask.addEventListener("click", function (event) {
+                event.target.parentElement.parentElement.remove();
+            });
+
+            // TODO: innerHTML 里直接写 HTML 代码
+            taskItem.appendChild(checkbox);
+            taskItem.appendChild(taskContent);
+            taskItem.appendChild(taskTrailing);
+            taskTrailing.appendChild(taskTime);
+            taskTrailing.appendChild(deleteTask);
+            return taskItem;
+        }
+        function createElementWithOneClass(element, className) {
+            let e = document.createElement(element);
+            e.setAttribute("class", className);
+            return e;
+        }
+    </script>
 </body>
 
 </html>
