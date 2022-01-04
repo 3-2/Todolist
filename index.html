@@ -7,76 +7,141 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Lists</title>
     <style>
-        .taskContent {
-            font-size: large;
-        }
-
-        .taskTime,
-        .deleteTask {
-            font-size: small;
-        }
-
-        .taskContent-input {
+        /* .taskBox-spanTag, */
+        .taskBox-inputTag {
             /* 我想把这个input充满 */
             width: calc(100% - 280px);
-        }
-
-        .taskContent-span {
-            border-color: brown;
+            font-size: large;
         }
 
         .taskTrailing {
             /* float: right; */
             display: inline-block;
+            font-size: small;
         }
     </style>
 </head>
 
 <body>
+    <div class="options">
+        <button id="export">导出数据</button>
+        <button id="import">导入数据</button>
+    </div>
     <div id="container">
         <!-- TODO: 让 time, deleteTask 按钮靠右 -->
-        <!-- <span class="taskContent-span">3333333</span> -->
     </div>
     <div>
         <!-- 紧贴在所有任务的底部，末尾总是有的输入框 -->
-        <input type="text" class="taskContent-input" id="addNewTask">
+        <input type="text" class="taskBox-inputTag" id="addNewTask">
         <div class="taskTrailing">
             <button id="addTask">Add</button>
         </div>
     </div>
     <script>
-        // TODO: 在监听事件这里就写成匿名函数
+        let taskContainer = document.getElementById('container');
+        // -----启动时从 localStorage 装载数据
+        window.addEventListener('load', function () {
+            insertTasks(JSON.parse(localStorage.getItem('todoList')));
+        });
         // TODO: 选择元素不要用ID
-        document.getElementById("addTask").addEventListener("click", addTask);
-        function addTask() {
+
+        // -----添加任务
+        document.getElementById("addTask").addEventListener("click", function () {
             if (document.getElementById("addNewTask").value !== "") {
-                document.getElementById("container").appendChild(createElement_taskItem());
+                taskContainer.appendChild(createElement_taskItem(
+                    document.getElementById("addNewTask").value,
+                    new Date(),
+                ));
             }
             document.getElementById("addNewTask").value = "";
+            localStorage.setItem('todoList', JSON.stringify(exportTasks()));
+        });
+        // -----导出数据
+        document.getElementById("export").addEventListener("click", function () {
+            prompt("", JSON.stringify(exportTasks()));
+        })
+        // -----导入数据
+        document.getElementById('import').addEventListener('click', function () {
+            let userInput = prompt('确定导入数据？警告：这会覆盖当前已有的数据。');
+            if (userInput !== null) {
+                try {
+                    let imported = JSON.parse(userInput);
+                    // 移除原有的 container
+                    taskContainer.innerHTML = "";
+                    //导入（注意 imported 不是iterable的，imported.todoListData 才是 array）
+                    insertTasks(imported);
+                    localStorage.setItem('todoList', JSON.stringify(exportTasks()));
+                }
+                catch (e) {
+                    alert('输入格式不正确，请检查确认后重试。')
+                }
+            }
+        })
+        // -----抽出来的函数
+        function exportTasks() {
+            let dataExchangeFormat = { todoListData: [] };
+            let taskItemList = document.getElementsByClassName("taskItem");
+            // 最好用 forEach
+            for (taskItem of taskItemList) {
+                dataExchangeFormat.todoListData.push(
+                    {
+                        text: taskItem.querySelector(".taskContent").value,
+                        // JS 惯用单引号，这样字符串内部的双引号无需转义
+                        isDone: taskItem.querySelector("input[type=\"checkbox\"]").checked,
+                        createdAt: parseInt(taskItem.querySelector("time").getAttribute("datetime"))
+                    }
+                );
+            }
+            return dataExchangeFormat;
         }
-        function createElement_taskItem() {
-            let taskItem = createElementWithOneClass("div", "taskItem");
+        function insertTasks(dataExchangeFormat) {
+            for (taskItem of dataExchangeFormat.todoListData) {
+                taskContainer.appendChild(createElement_taskItem(
+                    taskItem.text,
+                    new Date(taskItem.createdAt),
+                    taskItem.isDone
+                ));
+            }
+        }
+        function isValidJSON(str) {
+            try {
+                return JSON.parse(str);
+            }
+            catch (e) {
+                return false;
+            }
+        }
+        // 提高可复用性，增加了参数
+        function createElement_taskItem(content, DateObject, isDone) {
+            //需要输入的数据：任务内容，添加时间，
+            let taskItem = createElementWithClasses("div", ["taskItem"]);
             let checkbox = document.createElement("input");
-            let taskContent = createElementWithOneClass("input", "taskContent-input");
-            let taskTrailing = createElementWithOneClass("div", "taskTrailing");
-            let taskTime = createElementWithOneClass("time", "taskTime");
-            let deleteTask = createElementWithOneClass("button", "deleteTask");
+            let taskContent = createElementWithClasses("input", ["taskBox-inputTag", "taskContent"]);
+            let taskTrailing = createElementWithClasses("div", ["taskTrailing"]);
+            let taskTime = createElementWithClasses("time", ["taskTime"]);
+            let deleteTask = createElementWithClasses("button", ["deleteTask"]);
 
             checkbox.setAttribute("type", "checkbox");
+            if (isDone) {
+                checkbox.checked = true;
+            }
             taskContent.setAttribute("type", "text");
-            taskContent.setAttribute("value", document.getElementById("addNewTask").value);
-            let timestamp = new Date();
+            taskContent.setAttribute("value", content);
             //任务内容被用户编辑为空时的默认显示内容
             taskContent.addEventListener("blur", function (event) {
                 if (event.target.value == "")
                     event.target.value = "Untitled entry"
             })
-            taskTime.setAttribute("datetime", timestamp.getTime());
-            taskTime.innerHTML = timestamp.toISOString();
-            deleteTask.innerHTML = "Delete";
+
+            taskTime.setAttribute("datetime", DateObject.getTime());
+            // .innerHTML 被替换成了 .textContent
+            taskTime.textContent = DateObject.toISOString();
+
+            deleteTask.textContent = "Delete";
             // 删除任务按钮的点击事件
             deleteTask.addEventListener("click", function (event) {
                 event.target.parentElement.parentElement.remove();
+                localStorage.setItem('todoList', JSON.stringify(exportTasks()));
             });
 
             // TODO: innerHTML 里直接写 HTML 代码
@@ -87,9 +152,11 @@
             taskTrailing.appendChild(deleteTask);
             return taskItem;
         }
-        function createElementWithOneClass(element, className) {
-            let e = document.createElement(element);
-            e.setAttribute("class", className);
+        function createElementWithClasses(element, classList) {
+            let e = document.createElement(element)
+            for (oneClass of classList) {
+                e.classList.add(oneClass);
+            }
             return e;
         }
     </script>
