@@ -5,7 +5,7 @@
     <meta charset="UTF-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Lists</title>
+    <title>Todo List 2</title>
     <style>
         /* .taskBox-spanTag, */
         .taskBox-inputTag {
@@ -19,145 +19,478 @@
             display: inline-block;
             font-size: small;
         }
+
+        #sidebar {
+            position: fixed;
+            top: 0px;
+            left: 0px;
+            width: 320px;
+            height: 100vh;
+            border-right: 1px solid;
+        }
+
+        #right {
+            padding: 0 0 0 320px;
+        }
+
+        #topBar {
+            position: relative;
+        }
+
+        #topBar>* {
+            display: inline;
+        }
+
+        #generalOptions {
+            position: absolute;
+            right: 0px;
+        }
+
+        .groupItem {
+            position: relative;
+        }
+
+        .groupTrailing {
+            position: absolute;
+            right: 0px;
+            top: 0px;
+        }
+
+        .groupItem:hover .taskNumber {
+            display: none;
+        }
+
+        .groupItem:hover .groupOptions {
+            display: block;
+        }
+
+        .groupOptions {
+            display: none;
+        }
+
+        #allTasks .taskNumber {
+            display: block;
+        }
+
+        #groupList[remainingGroups="1"] .deleteGroup {
+            display: none;
+        }
     </style>
 </head>
 
 <body>
-    <div class="options">
-        <button id="export">导出数据</button>
-        <button id="import">导入数据</button>
+    <div id="sample" style="display: none;">
+        <div class="taskItem" group="默认分组">
+            <input type="checkbox">
+            <input class="taskBox-inputTag taskContent" type="text" value="44">
+            <div class="taskTrailing">
+                <time class="taskTime" datetime="1641573747712">2022-01-07T16:42:27.712Z</time>
+                <button class="deleteTask">删除</button>
+            </div>
+        </div>
+        <div class="groupItem">
+            <div class="groupName">默认分组</div>
+            <div class="groupTrailing">
+                <div class="groupOptions">
+                    <button class="editGroup">编辑</button>
+                    <button class="deleteGroup">删除</button>
+                </div>
+                <div class="taskNumber">20_testing</div>
+            </div>
+        </div>
     </div>
-    <div id="container">
-        <!-- TODO: 让 time, deleteTask 按钮靠右 -->
+    <div id="sidebar">
+        <div>分组</div>
+        <div id="groupList">
+            <!-- <div class="groupItem" id="allTasks">
+                <div class="groupName">全部事项</div>
+                <div class="groupTrailing">
+                    <div class="taskNumber">20_testing</div>
+                </div>
+            </div> -->
+            <!-- <div class="groupItem">
+                <div class="groupName">默认分组</div>
+                <div class="groupTrailing">
+                    <div class="groupOptions">
+                        <button class="editGroup">编辑</button>
+                        <button class="deleteGroup">删除</button>
+                    </div>
+                    <div class="taskNumber">20_testing</div>
+                </div>
+            </div> -->
+        </div>
+        <button id="addGroup">添加分组</button>
     </div>
-    <div>
-        <!-- 紧贴在所有任务的底部，末尾总是有的输入框 -->
-        <input type="text" class="taskBox-inputTag" id="addNewTask">
-        <div class="taskTrailing">
-            <button id="addTask">Add</button>
+    <div id="right">
+        <div id="topBar">
+            <div></div>
+            <!--当前分组的标题-->
+            <div id="generalOptions">
+                <button id="export">导出数据</button>
+                <button id="import">导入数据</button>
+            </div>
+        </div>
+        <div id="container">
+        </div>
+        <div>
+            <!-- 底部的div，没有class, id -->
+            <!-- 紧贴在所有事项的底部，末尾总是有的输入框 -->
+            <input type="text" class="taskBox-inputTag" id="addNewTask">
+            <div class="taskTrailing">
+                <button id="addTask">添加</button>
+            </div>
         </div>
     </div>
     <script>
-        let taskContainer = document.getElementById('container');
-        // -----启动时从 localStorage 装载数据
-        window.addEventListener('load', function () {
-            insertTasks(JSON.parse(localStorage.getItem('todoList')));
-        });
-        // TODO: 选择元素不要用ID
+        // 本项目所用数据样例
+        // let storageStructure = {
+        //     taskItemData: [
+        //         {
+        //             text: 'string',
+        //             isDone: 'bool',
+        //             createdAt: 'UnixTimestamp',
+        //             group: 'string'
+        //         }
+        //     ],
+        //     groupItemData: [
+        //         {
+        //             name: 'string'
+        //         }
+        //     ],
+        //     userStatus:
+        //     {
+        //         currentGroup: 'string (name)'
+        //     }
+        // }
 
-        // -----添加任务
-        document.getElementById("addTask").addEventListener("click", function () {
-            if (document.getElementById("addNewTask").value !== "") {
-                taskContainer.appendChild(createElement_taskItem(
-                    document.getElementById("addNewTask").value,
-                    new Date(),
-                ));
-            }
-            document.getElementById("addNewTask").value = "";
-            localStorage.setItem('todoList', JSON.stringify(exportTasks()));
-        });
-        // -----导出数据
-        document.getElementById("export").addEventListener("click", function () {
-            prompt("", JSON.stringify(exportTasks()));
-        })
-        // -----导入数据
-        document.getElementById('import').addEventListener('click', function () {
-            let userInput = prompt('确定导入数据？警告：这会覆盖当前已有的数据。');
-            if (userInput !== null) {
-                try {
-                    let imported = JSON.parse(userInput);
-                    // 移除原有的 container
-                    taskContainer.innerHTML = "";
-                    //导入（注意 imported 不是iterable的，imported.todoListData 才是 array）
-                    insertTasks(imported);
-                    localStorage.setItem('todoList', JSON.stringify(exportTasks()));
+        let storageCenter = {}; // 数据存储中心
+        //初始化存储中心
+        function StorageCenter(data) {
+            this.taskItemData = [];
+            this.groupItemData = [];
+            this.userStatus = { currentGroup: virtualGroupName };
+            Object.keys(data).map(p => this[p] = data[p]);
+        }
+        function TaskItem(data) {
+            // 事项对象的默认 property
+            this.text = 'Untitled entry';
+            this.isDone = false;
+            this.createdAt = new Date().getTime();
+            this.group = storageCenter.userStatus.currentGroup;
+            Object.keys(data).map(p => this[p] = data[p]);
+        }
+        function GroupItem(data) {
+            // 分组对象的默认 property
+            this.name = '未命名分组';
+            Object.keys(data).map(p => this[p] = data[p]);
+        }
+        function UserStatus(data) {
+            // 用户状态对象的默认 property
+            this.currentGroup = null;
+            Object.keys(data).map(p => this[p] = data[p]);
+        }
+        function restore() {
+            storageCenter = JSON.parse(localStorage.getItem('backup'));
+        }
+        function backup() {
+            localStorage.setItem('backup', JSON.stringify(storageCenter));
+        }
+        function addTask(taskItemObject) {
+            storageCenter.taskItemData.push(taskItemObject);
+        }
+        function addGroup(groupItemObject) {
+            storageCenter.groupItemData.push(groupItemObject);
+        }
+        function updateUserStatus(userStatusObject) {
+            storageCenter.userStatus = userStatusObject;
+        }
+        function retrieveTaskItem(timestamp) {
+            for (taskItem of storageCenter.taskItemData) {
+                if (taskItem.createdAt === timestamp) {
+                    return taskItem;
                 }
-                catch (e) {
-                    alert('输入格式不正确，请检查确认后重试。')
+            }
+        }
+        function retrieveGroupItem(groupName) {
+            for (groupItem of storageCenter.groupItemData) {
+                if (groupName === groupItem.name) {
+                    return groupItem;
                 }
             }
-        })
-        // -----抽出来的函数
-        function exportTasks() {
-            let dataExchangeFormat = { todoListData: [] };
-            let taskItemList = document.getElementsByClassName("taskItem");
-            // 最好用 forEach
-            for (taskItem of taskItemList) {
-                dataExchangeFormat.todoListData.push(
-                    {
-                        text: taskItem.querySelector(".taskContent").value,
-                        // JS 惯用单引号，这样字符串内部的双引号无需转义
-                        isDone: taskItem.querySelector("input[type=\"checkbox\"]").checked,
-                        createdAt: parseInt(taskItem.querySelector("time").getAttribute("datetime"))
+        }
+        function renameGroup(oldName, newName) {
+            // 修改分组对象的 name
+            retrieveGroupItem(oldName).name = newName;
+            for (taskItem of storageCenter.taskItemData) {
+                if (taskItem.group === oldName) {
+                    taskItem.group = newName;
+                }
+            }
+            // 如果重命名的分组是活跃的分组
+            if (oldName === storageCenter.userStatus.currentGroup) {
+                updateUserStatus(new UserStatus({ currentGroup: newName }));
+                // storageCenter.userStatus.currentGroup = newName;
+            }
+        }
+        function deleteTask(timestamp) { // 用 Unix时间戳确定
+            let index = storageCenter.taskItemData.findIndex(
+                function (e) {
+                    if (timestamp === e.createdAt) {
+                        return true;
                     }
-                );
-            }
-            return dataExchangeFormat;
+                }
+            );
+            storageCenter.taskItemData.splice(index, 1);
+            // backup();
         }
-        function insertTasks(dataExchangeFormat) {
-            for (taskItem of dataExchangeFormat.todoListData) {
-                taskContainer.appendChild(createElement_taskItem(
-                    taskItem.text,
-                    new Date(taskItem.createdAt),
-                    taskItem.isDone
-                ));
-            }
-        }
-        function isValidJSON(str) {
-            try {
-                return JSON.parse(str);
-            }
-            catch (e) {
-                return false;
-            }
-        }
-        // 提高可复用性，增加了参数
-        function createElement_taskItem(content, DateObject, isDone) {
-            //需要输入的数据：任务内容，添加时间，
-            let taskItem = createElementWithClasses("div", ["taskItem"]);
-            let checkbox = document.createElement("input");
-            let taskContent = createElementWithClasses("input", ["taskBox-inputTag", "taskContent"]);
-            let taskTrailing = createElementWithClasses("div", ["taskTrailing"]);
-            let taskTime = createElementWithClasses("time", ["taskTime"]);
-            let deleteTask = createElementWithClasses("button", ["deleteTask"]);
-
-            checkbox.setAttribute("type", "checkbox");
-            if (isDone) {
-                checkbox.checked = true;
-            }
-            taskContent.setAttribute("type", "text");
-            taskContent.setAttribute("value", content);
-            //任务内容被用户编辑为空时的默认显示内容
-            taskContent.addEventListener("blur", function (event) {
-                if (event.target.value == "")
-                    event.target.value = "Untitled entry"
+        function deleteGroup(groupName) { // 用分组名确定
+            // 确定索引
+            let index = storageCenter.groupItemData.findIndex(
+                function (e) {
+                    if (e.name === groupName) {
+                        return true;
+                    }
+                }
+            );
+            // 删除
+            storageCenter.groupItemData.splice(index, 1);
+            // 删除该分组内的所有事项
+            storageCenter.taskItemData = storageCenter.taskItemData.filter(function (e) {
+                if (e.group !== groupName) {
+                    return true;
+                }
             })
-
-            taskTime.setAttribute("datetime", DateObject.getTime());
-            // .innerHTML 被替换成了 .textContent
-            taskTime.textContent = DateObject.toISOString();
-
-            deleteTask.textContent = "Delete";
-            // 删除任务按钮的点击事件
-            deleteTask.addEventListener("click", function (event) {
-                event.target.parentElement.parentElement.remove();
-                localStorage.setItem('todoList', JSON.stringify(exportTasks()));
-            });
-
-            // TODO: innerHTML 里直接写 HTML 代码
-            taskItem.appendChild(checkbox);
-            taskItem.appendChild(taskContent);
-            taskItem.appendChild(taskTrailing);
-            taskTrailing.appendChild(taskTime);
-            taskTrailing.appendChild(deleteTask);
-            return taskItem;
-        }
-        function createElementWithClasses(element, classList) {
-            let e = document.createElement(element)
-            for (oneClass of classList) {
-                e.classList.add(oneClass);
+            if (storageCenter.userStatus.currentGroup === groupName) { // 如果被删的分组是活跃分组
+                if (storageCenter.groupItemData[index] !== undefined) { // 此时 index 指向被删的下一个元素，如果没有越界
+                    updateUserStatus(new UserStatus({ currentGroup: storageCenter.groupItemData[index].name }));
+                }
+                else { // 如果越界，即活跃分组变为上一分组
+                    updateUserStatus(new UserStatus({ currentGroup: storageCenter.groupItemData[index - 1].name }));
+                }
             }
-            return e;
+            // backup();
+        }
+        function ExportToJSONstring() {
+            //只导出存储中心的部分 property
+            let exported = {};
+            exported.taskItemData = storageCenter.taskItemData;
+            exported.groupItemData = storageCenter.groupItemData;
+            return JSON.stringify(exported);
+        }
+        function refreshBody() {
+            refreshGroupList();
+            refreshTaskContainer();
+            refreshCurrentGroupName();
+        }
+        function refreshGroupList() {
+            // 先清空
+            let groupListElement = document.getElementById('groupList');
+            groupListElement.innerHTML = '';
+
+            let e = document.createElement('div');
+            let allTaskNumber = storageCenter.taskItemData.length;
+            e.innerHTML = `
+            <div class="groupItem" id="allTasks">
+                <div class="groupName">全部事项</div>
+                <div class="groupTrailing">
+                    <div class="taskNumber">${allTaskNumber}</div>
+                </div>
+            </div>
+            `
+            groupListElement.appendChild(e.getElementsByTagName('div')[0]);
+            for (groupItem of storageCenter.groupItemData) {
+                groupListElement.appendChild(createElement_groupItem(new GroupItem(groupItem)));
+            }
+            document.getElementById('groupList').setAttribute('remainingGroups', storageCenter.groupItemData.length);
+        }
+        function refreshTaskContainer() {
+            let taskContainer = document.getElementById('container');
+            // 先清空
+            taskContainer.innerHTML = '';
+            let currentGroup = storageCenter.userStatus.currentGroup;
+            if (currentGroup === virtualGroupName) { // 活跃分组是否为虚拟分组
+                for (taskItem of storageCenter.taskItemData) {
+                    taskContainer.appendChild(createElement_taskItem(new TaskItem(taskItem)));
+                }
+            }
+            else {
+                for (taskItem of storageCenter.taskItemData) {
+                    if (taskItem.group === currentGroup) {
+                        taskContainer.appendChild(createElement_taskItem(new TaskItem(taskItem)));
+                    }
+                }
+            }
+        }
+        function refreshCurrentGroupName() {
+            document.querySelector('#topBar > div').textContent = storageCenter.userStatus.currentGroup;
+        }
+        const defaultGroupName = '默认分组';
+        const virtualGroupName = '全部事项';
+        // 业务：全新启动
+        window.addEventListener('load', function () {
+            if (localStorage.getItem('backup') === null || localStorage.getItem('backup') === '{}') { // 用 beforeunload 事件，仅在退出网页时备份；且全新启动的判断由 == null 换成了 == {}
+                storageCenter = new StorageCenter(
+                    {
+                        groupItemData: [new GroupItem({ name: defaultGroupName })],
+                        userStatus: new UserStatus({ currentGroup: defaultGroupName })
+                    }
+                )
+                refreshBody();
+            }
+            else {
+                restore();
+                refreshBody();
+            }
+        })
+        // 业务：关闭网页
+        window.addEventListener('beforeunload', function (e) {
+            backup();
+        });
+        // 听说这是公交车？
+        document.body.addEventListener('click', function (event) {
+            if (event.target.id === 'addTask') {
+                let userInput = document.getElementById('addNewTask').value;
+                if (userInput !== '') {
+                    let newTaskItem = new TaskItem({ text: userInput }); // 构造新任务的对象
+                    if (storageCenter.userStatus.currentGroup === virtualGroupName) { // 如果活跃分组是虚拟分组「全部事项」
+                        newTaskItem.group = storageCenter.groupItemData[0].name; // 则新任务对象的分组property变为第一个分组
+                    }
+                    addTask(newTaskItem);
+                    refreshBody();
+                }
+                document.getElementById('addNewTask').value = '';
+            }
+            if (event.target.id === 'addGroup') {
+                let userInput = prompt('请输入新分组的名称');
+                let flag = true; // 很C语言
+                if (userInput !== null) { // 用户没点「取消」
+                    if (userInput !== '') {
+                        for (groupItem of storageCenter.groupItemData) {
+                            if (groupItem.name === userInput) {
+                                flag = false;
+                                alert('已有名为' + userInput + '的分组');
+                                break; // 很C语言
+                            }
+                        }
+                        if (flag) { // 很C语言
+                            addGroup(new GroupItem({ name: userInput }));
+                            refreshGroupList();
+                        }
+                    }
+                    else { alert('分组名称不能为空') }
+                }
+            }
+            if (event.target.classList.contains('deleteTask')) {
+                deleteTask(event.target.previousElementSibling.getAttribute('datetime'));
+                refreshTaskContainer();
+                refreshGroupList();
+            }
+            if (event.target.classList.contains('editGroup')) {
+                let userInput = prompt('请输入新的分组名称');
+                let flag = true; // 很C语言
+                if (userInput !== null) { // 用户没点「取消」
+                    if (userInput !== '') {
+                        for (groupItem of storageCenter.groupItemData) {
+                            if (groupItem.name === userInput) {
+                                flag = false;
+                                alert('已有名为' + userInput + '的分组');
+                                break; // 很C语言
+                            }
+                        }
+                        if (flag) { // 很C语言
+                            renameGroup(
+                                event.target.parentElement.parentElement.previousElementSibling.textContent,
+                                userInput
+                            );
+                            refreshGroupList();
+                            refreshCurrentGroupName();
+                        }
+                    }
+                    else { alert('分组名称不能为空') }
+                }
+            }
+            if (event.target.classList.contains('deleteGroup')) {
+                let groupName = event.target.parentElement.parentElement.previousElementSibling.textContent;
+                let number = storageCenter.taskItemData.filter(function (e) {
+                    if (e.group === groupName) {
+                        return true;
+                    }
+                }).length;
+                if (confirm(`确认删除${groupName}分组？这将会删除该分组中共计${number}个事项。`)) {
+                    deleteGroup(groupName);
+                    refreshBody();
+                }
+            }
+            if (event.target.getAttribute('type') === 'checkbox') {
+                let taskItem = retrieveTaskItem(parseInt(event.target.parentElement.parentElement.querySelector('time').getAttribute('datetime').getAttribute('datetime')));
+                taskItem.isDone ? taskItem.isDone = false : taskItem.isDone = true;
+                refreshTaskContainer();
+            }
+            if (event.target.classList.contains('groupName')) {
+                updateUserStatus(new UserStatus({ currentGroup: event.target.textContent })); // 点击「.groupName」
+                // updateUserStatus(new UserStatus({ currentGroup: event.target.querySelector('groupName').textContent }));
+                refreshCurrentGroupName();
+                refreshTaskContainer();
+            }
+            if (event.target.id === 'export') {
+                prompt('', ExportToJSONstring());
+            }
+            if (event.target.id === 'import') {
+                if (confirm('确定导入数据？警告：这会覆盖当前已有的数据。')) {
+                    try {
+                        storageCenter = new StorageCenter(JSON.parse(prompt()));
+                        refreshBody();
+                    }
+                    catch (e) {
+                        alert('输入格式不正确，请检查确认后重试');
+                    }
+                }
+            }
+        })
+        // 关于 UI 的函数
+        function createElement_taskItem(taskItemObject) {
+            let e = document.createElement('div');
+            e.innerHTML = `
+            <div class="taskItem" group="${taskItemObject.group}">
+            <input type="checkbox">
+            <input class="taskBox-inputTag taskContent" type="text" value="${taskItemObject.text}">
+            <div class="taskTrailing">
+                <time class="taskTime" datetime="${taskItemObject.createdAt}">${new Date(taskItemObject.createdAt).toISOString()}</time>
+                <button class="deleteTask">删除</button>
+            </div>
+            </div>
+            `
+            e.querySelector('input').checked = taskItemObject.isDone ? true : false;
+            e.querySelector('.taskContent').addEventListener('blur', function (event) {
+                if (event.target.value == "") {
+                    event.target.value = "Untitled entry"
+                }
+                retrieveTaskItem(parseInt(event.target.parentElement.querySelector('time').getAttribute('datetime'))).text = event.target.value;
+            })
+            return e.getElementsByTagName('div')[0]; // 相当于返回上面的字符串（要保证字符串中的顶层元素只有一个）
+        }
+        function createElement_groupItem(groupItemObject) {
+            function insideTaskNumber() {
+                return storageCenter.taskItemData.filter(function (e) {
+                    if (e.group === groupItemObject.name) {
+                        return true;
+                    }
+                }).length;
+            }
+            let e = document.createElement('div');
+            e.innerHTML = `
+            <div class="groupItem">
+            <div class="groupName">${groupItemObject.name}</div>
+            <div class="groupTrailing">
+                <div class="groupOptions">
+                    <button class="editGroup">编辑</button>
+                    <button class="deleteGroup">删除</button>
+                </div>
+                <div class="taskNumber">${insideTaskNumber()}</div>
+            </div>
+            </div>
+            `
+            return e.getElementsByTagName('div')[0]; // 相当于返回上面的字符串（要保证字符串中的顶层元素只有一个）
         }
     </script>
 </body>
