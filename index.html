@@ -79,45 +79,9 @@
 </head>
 
 <body>
-    <div id="sample" style="display: none;">
-        <div class="taskItem" group="默认分组">
-            <input type="checkbox">
-            <input class="taskBox-inputTag taskContent" type="text" value="44">
-            <div class="taskTrailing">
-                <time class="taskTime" datetime="1641573747712">2022-01-07T16:42:27.712Z</time>
-                <button class="deleteTask">删除</button>
-            </div>
-        </div>
-        <div class="groupItem">
-            <div class="groupName">默认分组</div>
-            <div class="groupTrailing">
-                <div class="groupOptions">
-                    <button class="editGroup">编辑</button>
-                    <button class="deleteGroup">删除</button>
-                </div>
-                <div class="taskNumber">20_testing</div>
-            </div>
-        </div>
-    </div>
     <div id="sidebar">
         <div>分组</div>
         <div id="groupList">
-            <!-- <div class="groupItem" id="allTasks">
-                <div class="groupName">全部事项</div>
-                <div class="groupTrailing">
-                    <div class="taskNumber">20_testing</div>
-                </div>
-            </div> -->
-            <!-- <div class="groupItem">
-                <div class="groupName">默认分组</div>
-                <div class="groupTrailing">
-                    <div class="groupOptions">
-                        <button class="editGroup">编辑</button>
-                        <button class="deleteGroup">删除</button>
-                    </div>
-                    <div class="taskNumber">20_testing</div>
-                </div>
-            </div> -->
         </div>
         <button id="addGroup">添加分组</button>
     </div>
@@ -162,7 +126,6 @@
         //         currentGroup: 'string (name)'
         //     }
         // }
-
         let storageCenter = {}; // 数据存储中心
         //初始化存储中心
         function StorageCenter(data) {
@@ -177,6 +140,7 @@
             this.isDone = false;
             this.createdAt = new Date().getTime();
             this.group = storageCenter.userStatus.currentGroup;
+            this.deadline = null;
             Object.keys(data).map(p => this[p] = data[p]);
         }
         function GroupItem(data) {
@@ -233,33 +197,16 @@
             }
         }
         function deleteTask(timestamp) { // 用 Unix时间戳确定
-            let index = storageCenter.taskItemData.findIndex(
-                function (e) {
-                    if (timestamp === e.createdAt) {
-                        return true;
-                    }
-                }
-            );
+            let index = storageCenter.taskItemData.findIndex(e => timestamp === e.createdAt);
             storageCenter.taskItemData.splice(index, 1);
-            // backup();
         }
         function deleteGroup(groupName) { // 用分组名确定
             // 确定索引
-            let index = storageCenter.groupItemData.findIndex(
-                function (e) {
-                    if (e.name === groupName) {
-                        return true;
-                    }
-                }
-            );
+            let index = storageCenter.groupItemData.findIndex(e => e.name === groupName);
             // 删除
             storageCenter.groupItemData.splice(index, 1);
             // 删除该分组内的所有事项
-            storageCenter.taskItemData = storageCenter.taskItemData.filter(function (e) {
-                if (e.group !== groupName) {
-                    return true;
-                }
-            })
+            storageCenter.taskItemData = storageCenter.taskItemData.filter(function (e) { e => e.group !== groupName })
             if (storageCenter.userStatus.currentGroup === groupName) { // 如果被删的分组是活跃分组
                 if (storageCenter.groupItemData[index] !== undefined) { // 此时 index 指向被删的下一个元素，如果没有越界
                     updateUserStatus(new UserStatus({ currentGroup: storageCenter.groupItemData[index].name }));
@@ -268,7 +215,6 @@
                     updateUserStatus(new UserStatus({ currentGroup: storageCenter.groupItemData[index - 1].name }));
                 }
             }
-            // backup();
         }
         function ExportToJSONstring() {
             //只导出存储中心的部分 property
@@ -277,6 +223,7 @@
             exported.groupItemData = storageCenter.groupItemData;
             return JSON.stringify(exported);
         }
+        // refresh UI
         function refreshBody() {
             refreshGroupList();
             refreshTaskContainer();
@@ -411,11 +358,7 @@
             }
             if (event.target.classList.contains('deleteGroup')) {
                 let groupName = event.target.parentElement.parentElement.previousElementSibling.textContent;
-                let number = storageCenter.taskItemData.filter(function (e) {
-                    if (e.group === groupName) {
-                        return true;
-                    }
-                }).length;
+                let number = storageCenter.taskItemData.filter(e => e.group === groupName).length;
                 if (confirm(`确认删除${groupName}分组？这将会删除该分组中共计${number}个事项。`)) {
                     deleteGroup(groupName);
                     refreshBody();
@@ -427,8 +370,7 @@
                 refreshTaskContainer();
             }
             if (event.target.classList.contains('groupName')) {
-                updateUserStatus(new UserStatus({ currentGroup: event.target.textContent })); // 点击「.groupName」
-                // updateUserStatus(new UserStatus({ currentGroup: event.target.querySelector('groupName').textContent }));
+                updateUserStatus(new UserStatus({ currentGroup: event.target.textContent }));
                 refreshCurrentGroupName();
                 refreshTaskContainer();
             }
@@ -447,7 +389,7 @@
                 }
             }
         })
-        // 关于 UI 的函数
+        // 画 HTML 元素
         function createElement_taskItem(taskItemObject) {
             let e = document.createElement('div');
             e.innerHTML = `
@@ -471,11 +413,7 @@
         }
         function createElement_groupItem(groupItemObject) {
             function insideTaskNumber() {
-                return storageCenter.taskItemData.filter(function (e) {
-                    if (e.group === groupItemObject.name) {
-                        return true;
-                    }
-                }).length;
+                return storageCenter.taskItemData.filter(e => e.group === groupItemObject.name).length
             }
             let e = document.createElement('div');
             e.innerHTML = `
