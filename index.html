@@ -300,6 +300,8 @@
         })
         // 业务：关闭网页
         window.addEventListener('beforeunload', function (e) {
+            e.preventDefault();
+            e.returnValue = '网页即将关闭';
             pauseToLocalStorage();
         });
         // 听说这是公交车？
