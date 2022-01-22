@@ -246,9 +246,7 @@
         </div>
             `
             groupListElement.appendChild(e.getElementsByTagName('div')[0]); // 以后优化一下怎么从 HTML字符串创建元素，这行代码导致多了一个空的 div
-            for (groupItem of storageCenter.userData.groupItemData) {
-                groupListElement.appendChild(createElement_groupItem(new GroupItem(groupItem)));
-            }
+            storageCenter.userData.groupItemData.forEach(e => groupListElement.appendChild(createElement_groupItem(new GroupItem(e))));
             document.getElementById('groupList').setAttribute('remainingGroups', storageCenter.userData.groupItemData.length);
         }
         function refreshTaskContainer() {
@@ -262,7 +260,7 @@
                     break;
                 case '将要截止':
                     let taskItemsWithDeadline = storageCenter.userData.taskItemData.filter(e => e.deadline);
-                    let sorted = taskItemsWithDeadline.sort(function (a, b) { return a.deadline - b.deadline; });
+                    let sorted = taskItemsWithDeadline.sort((a, b) => a.deadline - b.deadline);
                     sorted.forEach(e => taskContainer.appendChild(createElement_taskItem(new TaskItem(e))));
                     break;
                 default:
@@ -441,6 +439,7 @@
             `;
             e.querySelector('.isDone').checked = taskItemObject.isDone ? true : false;
             let taskDetails = e.querySelector('.taskDetails');
+            // 未来优化一下，抽出 taskDetails 的画 UI 过程
             if (taskItemObject.deadline !== null) { // 如果有截止日期数据
                 e.querySelector('.setDeadline').checked = true;
                 taskDetails.innerHTML += '<input type="datetime-local" class="deadline">';
@@ -450,7 +449,9 @@
                     storageCenter.findTaskItemObject(Number(timestamp)).deadline = new Date(event.target.value + ':00.000Z').getTime(); // 转换为Unix时间戳放入存储中心，使用 UTC+0 时间
                     refreshGroupList();
                 });
-                if (taskItemObject.deadline !== '') { // 如果截止日期不为空
+                if (taskItemObject.deadline !== '' && isNaN(taskItemObject.deadline) === false) { // 如果截止日期不为空
+                    console.log(taskItemObject)
+                    console.log(taskItemObject.deadline !== NaN)
                     taskDetails.querySelector('.deadline').value = new Date(taskItemObject.deadline).toISOString().slice(0, 16);
                 } // 将时间戳转换为 datetime-local 可接受的格式
             }
