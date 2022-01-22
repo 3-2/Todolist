@@ -68,7 +68,8 @@
             display: none;
         }
 
-        #allTasks .taskNumber {
+        #allTasks .taskNumber,
+        #toDeadline .taskNumber {
             display: block;
         }
 
@@ -124,26 +125,6 @@
         </div>
     </div>
     <script>
-        // 本项目所用数据样例
-        // let storageStructure = {
-        //     taskItemData: [
-        //         {
-        //             text: 'string',
-        //             isDone: 'bool',
-        //             createdAt: 'UnixTimestamp',
-        //             group: 'string'
-        //         }
-        //     ],
-        //     groupItemData: [
-        //         {
-        //             name: 'string'
-        //         }
-        //     ],
-        //     userStatus:
-        //     {
-        //         currentGroup: 'string (name)'
-        //     }
-        // }
         let storageCenter;
         function StorageCenter(obj) {
             this.userData = {
@@ -247,18 +228,24 @@
             // 先清空
             let groupListElement = document.getElementById('groupList');
             groupListElement.innerHTML = '';
-
             let e = document.createElement('div');
-            let allTaskNumber = storageCenter.userData.taskItemData.length;
             e.innerHTML = `
+        <div>
             <div class="groupItem" id="allTasks">
                 <div class="groupName">全部事项</div>
                 <div class="groupTrailing">
-                    <div class="taskNumber">${allTaskNumber}</div>
+                    <div class="taskNumber">${storageCenter.userData.taskItemData.length}</div>
                 </div>
             </div>
+            <div class="groupItem" id="toDeadline">
+                <div class="groupName">将要截止</div>
+                <div class="groupTrailing">
+                    <div class="taskNumber">${storageCenter.userData.taskItemData.filter(e => e.deadline).length}</div>
+                </div>
+            </div>
+        </div>
             `
-            groupListElement.appendChild(e.getElementsByTagName('div')[0]);
+            groupListElement.appendChild(e.getElementsByTagName('div')[0]); // 以后优化一下怎么从 HTML字符串创建元素，这行代码导致多了一个空的 div
             for (groupItem of storageCenter.userData.groupItemData) {
                 groupListElement.appendChild(createElement_groupItem(new GroupItem(groupItem)));
             }
@@ -269,17 +256,22 @@
             // 先清空
             taskContainer.innerHTML = '';
             let currentGroup = storageCenter.userStatus.currentGroup;
-            if (currentGroup === virtualGroupName) { // 活跃分组是否为虚拟分组
-                for (taskItem of storageCenter.userData.taskItemData) {
-                    taskContainer.appendChild(createElement_taskItem(new TaskItem(taskItem)));
-                }
-            }
-            else {
-                for (taskItem of storageCenter.userData.taskItemData) {
-                    if (taskItem.group === currentGroup) {
-                        taskContainer.appendChild(createElement_taskItem(new TaskItem(taskItem)));
+            switch (currentGroup) {
+                case virtualGroupName:
+                    storageCenter.userData.taskItemData.forEach(e => taskContainer.appendChild(createElement_taskItem(new TaskItem(e))));
+                    break;
+                case '将要截止':
+                    let taskItemsWithDeadline = storageCenter.userData.taskItemData.filter(e => e.deadline);
+                    let sorted = taskItemsWithDeadline.sort(function (a, b) { return a.deadline - b.deadline; });
+                    sorted.forEach(e => taskContainer.appendChild(createElement_taskItem(new TaskItem(e))));
+                    break;
+                default:
+                    for (taskItem of storageCenter.userData.taskItemData) {
+                        if (taskItem.group === currentGroup) {
+                            taskContainer.appendChild(createElement_taskItem(new TaskItem(taskItem)));
+                        }
                     }
-                }
+                    break;
             }
         }
         function refreshCurrentGroupName() {
@@ -299,7 +291,7 @@
             }
         })
         // 业务：关闭网页
-        window.addEventListener('pagehide', function (e) {
+        window.addEventListener('pagehide', function () {
             pauseToLocalStorage();
         });
         // 听说这是公交车？
@@ -390,6 +382,7 @@
             }
             if (event.target.classList.contains('groupName')) {
                 storageCenter.userStatus.currentGroup = event.target.textContent;
+                storageCenter.userStatus.focusingTask = null;
                 refreshCurrentGroupName();
                 refreshTaskContainer();
             }
@@ -455,6 +448,7 @@
                     let taskItemNode = event.target.closest('.taskItem');
                     let timestamp = Number(taskItemNode.getAttribute('timestamp'));
                     storageCenter.findTaskItemObject(Number(timestamp)).deadline = new Date(event.target.value + ':00.000Z').getTime(); // 转换为Unix时间戳放入存储中心，使用 UTC+0 时间
+                    refreshGroupList();
                 });
                 if (taskItemObject.deadline !== '') { // 如果截止日期不为空
                     taskDetails.querySelector('.deadline').value = new Date(taskItemObject.deadline).toISOString().slice(0, 16);
