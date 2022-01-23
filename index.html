@@ -483,7 +483,7 @@
         function createElement_taskItem(taskItemObject) {
             let e = document.createElement('div');
             e.innerHTML = `
-            <div class="taskItem" isFocusing="${storageCenter.userStatus.focusingTask === taskItemObject.createdAt ? 'true' : 'false'}" group="${taskItemObject.group}" timestamp="${taskItemObject.createdAt}" isDone="${taskItemObject.isDone}" deadline="${taskItemObject.deadline}">
+            <div class="taskItem" isFocusing="${storageCenter.userStatus.focusingTask === taskItemObject.createdAt ? 'true' : 'false'}" timestamp="${taskItemObject.createdAt}">
             <div class="taskMain">
                 <div class="taskBox">
                 <input type="checkbox" class="isDone">
