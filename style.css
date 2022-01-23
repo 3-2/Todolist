@@ -1,0 +1,90 @@
+/* .taskBox-spanTag, */
+.taskBox-inputTag {
+    /* 我想把这个input充满 */
+    width: calc(100% - 280px);
+    font-size: large;
+}
+
+.taskTrailing {
+    /* float: right; */
+    display: inline-block;
+    font-size: small;
+}
+
+#sidebar {
+    position: fixed;
+    top: 0px;
+    left: 0px;
+    width: 320px;
+    height: 100vh;
+    border-right: 1px solid;
+}
+
+#right {
+    padding: 0 0 0 320px;
+}
+
+#topBar {
+    position: relative;
+}
+
+#topBar>* {
+    display: inline;
+}
+
+#generalOptions {
+    position: absolute;
+    right: 0px;
+}
+
+.groupItem {
+    position: relative;
+}
+
+.groupTrailing {
+    position: absolute;
+    right: 0px;
+    top: 0px;
+}
+
+.groupItem:hover .taskNumber {
+    display: none;
+}
+
+.groupItem:hover .groupOptions {
+    display: block;
+}
+
+.groupOptions {
+    display: none;
+}
+
+#allTasks .taskNumber,
+#toDeadline .taskNumber {
+    display: block;
+}
+
+#groupList[remainingGroups="1"] .deleteGroup {
+    display: none;
+}
+
+.taskOptions {
+    display: none;
+}
+
+.taskItem[isFocusing="true"] .taskOptions {
+    display: block;
+}
+
+.taskMain {
+    border: 2px solid blue;
+    margin-top: 1em;
+}
+
+.taskContent {
+    border: none;
+}
+
+.grouping {
+    display: none;
+}
