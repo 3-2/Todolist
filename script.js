@@ -373,7 +373,7 @@ function createElement_taskItem(taskItemObject) {
     if (taskItemObject.deadline !== null) { // 如果有截止时间数据
         e.querySelector('.setDeadline').checked = true;
         taskDetails.innerHTML += '<input type="datetime-local" class="deadline">';
-        taskDetails.querySelector('.deadline').addEventListener('blur', function () {
+        taskDetails.querySelector('.deadline').addEventListener('input', function () {
             let taskItemNode = event.target.closest('.taskItem');
             let timestamp = Number(taskItemNode.getAttribute('timestamp'));
             storageCenter.findTaskItemObject(Number(timestamp)).deadline = new Date(event.target.value + ':00.000Z').getTime(); // 转换为Unix时间戳放入存储中心，使用 UTC+0 时间
