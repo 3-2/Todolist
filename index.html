@@ -93,6 +93,10 @@
         .taskContent {
             border: none;
         }
+
+        .grouping {
+            display: none;
+        }
     </style>
 </head>
 
@@ -114,6 +118,8 @@
             </div>
         </div>
         <div id="container">
+            <div id="incomplete"></div>
+            <div id="completed"></div>
         </div>
         <div>
             <!-- 底部的div，没有class, id -->
@@ -234,13 +240,13 @@
             <div class="groupItem" id="allTasks">
                 <div class="groupName">全部事项</div>
                 <div class="groupTrailing">
-                    <div class="taskNumber">${storageCenter.userData.taskItemData.length}</div>
+                    <div class="taskNumber">${storageCenter.userData.taskItemData.filter(e => !e.isDone).length}</div>
                 </div>
             </div>
             <div class="groupItem" id="toDeadline">
                 <div class="groupName">将要截止</div>
                 <div class="groupTrailing">
-                    <div class="taskNumber">${storageCenter.userData.taskItemData.filter(e => e.deadline).length}</div>
+                    <div class="taskNumber">${storageCenter.userData.taskItemData.filter(e => e.deadline && !e.isDone).length}</div>
                 </div>
             </div>
         </div>
@@ -250,23 +256,82 @@
             document.getElementById('groupList').setAttribute('remainingGroups', storageCenter.userData.groupItemData.length);
         }
         function refreshTaskContainer() {
-            let taskContainer = document.getElementById('container');
-            // 先清空
-            taskContainer.innerHTML = '';
+            let completedDIV = document.getElementById('completed');
+            let incompleteDIV = document.getElementById('incomplete');
+            completedDIV.innerHTML = '';
+            incompleteDIV.innerHTML = '';
             let currentGroup = storageCenter.userStatus.currentGroup;
             switch (currentGroup) {
                 case virtualGroupName:
-                    storageCenter.userData.taskItemData.forEach(e => taskContainer.appendChild(createElement_taskItem(new TaskItem(e))));
+                    storageCenter.userData.taskItemData.forEach(e => {
+                        if (e.isDone) {
+                            completedDIV.appendChild(createElement_taskItem(new TaskItem(e)));
+                        }
+                        else {
+                            incompleteDIV.appendChild(createElement_taskItem(new TaskItem(e)));
+                        }
+                    });
                     break;
                 case '将要截止':
                     let taskItemsWithDeadline = storageCenter.userData.taskItemData.filter(e => e.deadline);
                     let sorted = taskItemsWithDeadline.sort((a, b) => a.deadline - b.deadline);
-                    sorted.forEach(e => taskContainer.appendChild(createElement_taskItem(new TaskItem(e))));
+                    incompleteDIV.innerHTML = `
+    <div id="expired" class="grouping">过期</div>
+    <div id="today" class="grouping">今天</div>
+    <div id="tomorrow" class="grouping">明天</div>
+    <div id="thisWeek" class="grouping">本周</div>
+    <div id="future" class="grouping">以后</div>
+                    `
+                    let t = new Date().getTime();
+                    function grouping(timespan) {
+                        if (timespan <= 0) return 'expired';
+                        if (timespan < 86400000) return 'today';
+                        if (timespan < 172800000) return 'tomorrow';
+                        if (timespan < 604800000) return 'thisWeek';
+                        // return 'future';
+                    }
+                    sorted.forEach(e => {
+                        if (e.isDone) {
+                            completedDIV.appendChild(createElement_taskItem(new TaskItem(e)));
+                        }
+                        else {
+                            switch (grouping(e.deadline - t)) {
+                                case 'expired':
+                                    incompleteDIV.querySelector('#expired').appendChild(createElement_taskItem(new TaskItem(e)));
+                                    break;
+                                case 'today':
+                                    incompleteDIV.querySelector('#today').appendChild(createElement_taskItem(new TaskItem(e)));
+                                    break;
+
+                                case 'tomorrow':
+                                    incompleteDIV.querySelector('#tomorrow').appendChild(createElement_taskItem(new TaskItem(e)));
+                                    break;
+
+                                case 'thisWeek':
+                                    incompleteDIV.querySelector('#thisWeek').appendChild(createElement_taskItem(new TaskItem(e)));
+                                    break;
+
+                                default:
+                                    incompleteDIV.querySelector('#future').appendChild(createElement_taskItem(new TaskItem(e)));
+                                    break;
+                            }
+                        }
+                    });
+                    for (grouped of incompleteDIV.children) { // 每个分段（「今天」「明天」……）有任务的话，就显示，否则默认隐藏
+                        if (grouped.childElementCount) {
+                            grouped.style.display = 'block';
+                        }
+                    };
                     break;
                 default:
                     for (taskItem of storageCenter.userData.taskItemData) {
                         if (taskItem.group === currentGroup) {
-                            taskContainer.appendChild(createElement_taskItem(new TaskItem(taskItem)));
+                            if (taskItem.isDone) {
+                                completedDIV.appendChild(createElement_taskItem(new TaskItem(taskItem)));
+                            }
+                            else {
+                                incompleteDIV.appendChild(createElement_taskItem(new TaskItem(taskItem)));
+                            }
                         }
                     }
                     break;
@@ -376,7 +441,7 @@
                 let timestamp = Number(taskItemNode.getAttribute('timestamp'));
                 let taskItem = storageCenter.findTaskItemObject(timestamp);
                 taskItem.isDone ? taskItem.isDone = false : taskItem.isDone = true;
-                refreshTaskContainer();
+                refreshBody();
             }
             if (event.target.classList.contains('groupName')) {
                 storageCenter.userStatus.currentGroup = event.target.textContent;
@@ -429,9 +494,7 @@
             </div>
 
         <div class="taskOptions">
-            <input type="checkbox" class="setDeadline">截止日期
-            <input type="checkbox" class="setNote">备注
-            分组：<select class="selectGroup"></select>
+            <input type="checkbox" class="setDeadline">截止时间
             <button class="deleteTask">删除</button>
         </div>
 
@@ -440,7 +503,7 @@
             e.querySelector('.isDone').checked = taskItemObject.isDone ? true : false;
             let taskDetails = e.querySelector('.taskDetails');
             // 未来优化一下，抽出 taskDetails 的画 UI 过程
-            if (taskItemObject.deadline !== null) { // 如果有截止日期数据
+            if (taskItemObject.deadline !== null) { // 如果有截止时间数据
                 e.querySelector('.setDeadline').checked = true;
                 taskDetails.innerHTML += '<input type="datetime-local" class="deadline">';
                 taskDetails.querySelector('.deadline').addEventListener('blur', function () {
@@ -449,9 +512,7 @@
                     storageCenter.findTaskItemObject(Number(timestamp)).deadline = new Date(event.target.value + ':00.000Z').getTime(); // 转换为Unix时间戳放入存储中心，使用 UTC+0 时间
                     refreshGroupList();
                 });
-                if (taskItemObject.deadline !== '' && isNaN(taskItemObject.deadline) === false) { // 如果截止日期不为空
-                    console.log(taskItemObject)
-                    console.log(taskItemObject.deadline !== NaN)
+                if (taskItemObject.deadline !== '' && isNaN(taskItemObject.deadline) === false) { // 如果截止时间不为空
                     taskDetails.querySelector('.deadline').value = new Date(taskItemObject.deadline).toISOString().slice(0, 16);
                 } // 将时间戳转换为 datetime-local 可接受的格式
             }
@@ -483,7 +544,7 @@
         }
         function createElement_groupItem(groupItemObject) {
             function insideTaskNumber() {
-                return storageCenter.userData.taskItemData.filter(e => e.group === groupItemObject.name).length
+                return storageCenter.userData.taskItemData.filter(e => e.group === groupItemObject.name && !e.isDone).length
             }
             let e = document.createElement('div');
             e.innerHTML = `
