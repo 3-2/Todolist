@@ -11,7 +11,11 @@
     font-size: small;
 }
 
-#sidebar {
+#container, #sidebar {
+    overflow: scroll;
+}
+
+/* #sidebar {
     position: fixed;
     top: 0px;
     left: 0px;
@@ -22,7 +26,47 @@
 
 #right {
     padding: 0 0 0 320px;
+} */
+
+/* 隐藏 body 超出 <html> 的多余部分 */
+html {
+    overflow: hidden;
 }
+
+/* flexbox */
+body {
+    /* 为了去除 body 外的 margin 而导致的滚动条*/
+    box-sizing: border-box;
+    margin: 0;
+    padding: 8px;
+
+    display: flex;
+    block-size: 100vh;
+}
+
+#sidebar {
+    inline-size: 30%;
+    border-right: 1px solid;
+    position: relative;
+}
+
+#right {
+    inline-size: 70%;
+}
+
+/* 移动端 */
+@media screen and (max-width: 768px) {
+    #sidebar, #right {
+        inline-size: 100%;
+        position: absolute;
+        block-size: 100%;
+    }
+
+    #sidebar {
+        display: none;
+    }
+}
+
 
 #topBar {
     position: relative;
@@ -33,8 +77,11 @@
 }
 
 #generalOptions {
+    /* 按钮不多，暂时不需要flexbox */
+    display: flex;
     position: absolute;
-    right: 0px;
+    bottom: 0;
+    inline-size: 100%;
 }
 
 .groupItem {

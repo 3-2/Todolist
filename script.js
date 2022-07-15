@@ -343,7 +343,8 @@ document.body.addEventListener('click', function (event) {
         let timestamp = Number(taskItemNode.getAttribute('timestamp'));
         let taskItem = storageCenter.findTaskItemObject(timestamp);
         taskItem.deadline === null ? taskItem.deadline = '' : taskItem.deadline = null;
-        refreshTaskContainer(); // 以后改写为只刷新 taskDetails，即把 taskDetails Div 从 createElement_taskItem 中拆出来
+        // refreshTaskContainer(); // 以后改写为只刷新 taskDetails，即把 taskDetails Div 从 createElement_taskItem 中拆出来
+        refreshBody();
     }
 })
 // 画 HTML 元素
