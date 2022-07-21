@@ -1,17 +1,13 @@
-/* .taskBox-spanTag, */
-.taskBox-inputTag {
-    /* 我想把这个input充满 */
-    width: calc(100% - 280px);
-    font-size: large;
+#underContainer {
+    display: flex;
 }
 
-.taskTrailing {
-    /* float: right; */
-    display: inline-block;
-    font-size: small;
+#addNewTask {
+    flex: 1;
 }
 
 #container, #sidebar {
+    position: relative;
     overflow: scroll;
 }
 
@@ -29,9 +25,9 @@
 } */
 
 /* 隐藏 body 超出 <html> 的多余部分 */
-html {
+/* html {
     overflow: hidden;
-}
+} */
 
 /* flexbox */
 body {
@@ -45,26 +41,56 @@ body {
 }
 
 #sidebar {
-    inline-size: 30%;
+    flex: 1;
     border-right: 1px solid;
     position: relative;
 }
 
 #right {
-    inline-size: 70%;
+    flex: 2;
 }
 
 /* 移动端 */
-@media screen and (max-width: 768px) {
+@media (orientation: portrait) {
     #sidebar, #right {
         inline-size: 100%;
-        position: absolute;
+
         block-size: 100%;
     }
 
     #sidebar {
         display: none;
     }
+
+    #right[isSwitchingGroupsInPortrait='true'] {
+        filter: blur(5px)
+    }
+
+    #sidebar[isSwitchingGroupsInPortrait='true'] {
+        position: absolute;
+        display: block;
+        z-index: 1
+    }
+
+    .groupOptions {
+        display: block;
+    }
+
+}
+
+@media (orientation: landscape) {
+    #expandGroups {
+        /* visibility: hidden; */
+        display: none !important;
+    }
+
+    /* .groupOptions {
+        visibility: hidden;
+    }
+
+    .groupItem:hover .groupOptions {
+        display: inline;
+    } */
 }
 
 
@@ -77,7 +103,6 @@ body {
 }
 
 #generalOptions {
-    /* 按钮不多，暂时不需要flexbox */
     display: flex;
     position: absolute;
     bottom: 0;
@@ -85,25 +110,15 @@ body {
 }
 
 .groupItem {
-    position: relative;
+    display: flex;
 }
 
-.groupTrailing {
-    position: absolute;
-    right: 0px;
-    top: 0px;
+.groupName {
+    flex: 1;
 }
 
-.groupItem:hover .taskNumber {
-    display: none;
-}
-
-.groupItem:hover .groupOptions {
-    display: block;
-}
-
-.groupOptions {
-    display: none;
+.groupTrailing>* {
+    display: inline;
 }
 
 #allTasks .taskNumber,

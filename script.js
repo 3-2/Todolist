@@ -209,9 +209,9 @@ function refreshCurrentGroupName() {
 }
 const defaultGroupName = '默认分组';
 const virtualGroupName = '全部事项';
-// 业务：全新启动
+// 业务：启动网页
 window.addEventListener('load', function () {
-    if (localStorage.getItem('pausedData') === null || localStorage.getItem('pausedData') === '{}') { // 用 beforeunload 事件，仅在退出网页时备份；且全新启动的判断由 == null 换成了 == {}
+    if (localStorage.getItem('pausedData') === null || localStorage.getItem('pausedData') === '{}') { // 全新启动的判断由 == null 换成了 == {}
         storageCenter = new StorageCenter({});
         refreshBody();
     }
@@ -221,15 +221,72 @@ window.addEventListener('load', function () {
     }
 })
 // 业务：关闭网页
-window.addEventListener('pagehide', function () {
+window.addEventListener('pagehide', function () { // 仅在关闭网页时备份
     pauseToLocalStorage();
+});
+window.addEventListener('orientationchange', function () {
+    let ElementsSwitchingGroupsInPortrait = document.querySelectorAll('[isSwitchingGroupsInPortrait="true"]'); // 当前是否处于竖屏时的切换分组状态下
+    if (ElementsSwitchingGroupsInPortrait.length) {
+        for (element of ElementsSwitchingGroupsInPortrait) {
+            element.setAttribute('isSwitchingGroupsInPortrait', 'false');
+        }
+    }
+})
+let globalTest;
+document.body.addEventListener('change', (event) => {
+    if (event.target.tagName === 'SELECT') {
+        if (event.target.name === 'dropDownGroupOptions') {
+            switch (event.target.value) {
+                case 'rename': {
+                    let userInput = prompt('请输入新的分组名称');
+                    let flag = true; // 很C语言
+                    if (userInput !== null) { // 用户没点「取消」
+                        if (userInput !== '') {
+                            for (groupItem of storageCenter.userData.groupItemData) {
+                                if (groupItem.name === userInput) {
+                                    flag = false;
+                                    alert('已有名为' + userInput + '的分组');
+                                    break; // 很C语言
+                                }
+                            }
+                            if (flag) { // 很C语言
+                                let groupItemNode = event.target.closest('.groupItem');
+                                let oldName = groupItemNode.getAttribute('groupName');
+                                storageCenter.renameGroup(oldName, userInput);
+                                refreshGroupList();
+                                refreshCurrentGroupName();
+                            }
+                        }
+                        else { alert('分组名称不能为空') }
+                    }
+                }
+                    break;
+                case 'delete': {
+                    let groupItemNode = event.target.closest('.groupItem');
+                    let groupName = groupItemNode.getAttribute('groupName');
+                    let number = storageCenter.userData.taskItemData.filter(e => e.group === groupName).length;
+                    if (confirm(number ? "确认删除" + groupName + "分组？这将会删除该分组中共计" + number + "个事项。" : '确认删除分组？（该分组中无任务）')) {
+                        storageCenter.deleteGroup(groupName);
+                        refreshBody();
+                    }
+                }
+                    break;
+            }
+        }
+        event.target.value = 'edit'
+    }
 });
 // 听说这是公交车？
 document.body.addEventListener('click', function (event) {
+    if (event.target.id === 'expandGroups') {
+        ['sidebar', 'right'].forEach(e => {
+            document.getElementById(e).setAttribute('isSwitchingGroupsInPortrait', 'true');
+        })
+    }
     if (event.target.id === 'reset') {
         localStorage.clear();
         storageCenter = {};
-        location.reload();
+        location.reload();//刷新
     }
     if (event.target.id === 'addTask') {
         let userInput = document.getElementById('addNewTask').value;
@@ -271,38 +328,6 @@ document.body.addEventListener('click', function (event) {
         refreshTaskContainer();
         refreshGroupList();
     }
-    if (event.target.classList.contains('editGroup')) {
-        let userInput = prompt('请输入新的分组名称');
-        let flag = true; // 很C语言
-        if (userInput !== null) { // 用户没点「取消」
-            if (userInput !== '') {
-                for (groupItem of storageCenter.userData.groupItemData) {
-                    if (groupItem.name === userInput) {
-                        flag = false;
-                        alert('已有名为' + userInput + '的分组');
-                        break; // 很C语言
-                    }
-                }
-                if (flag) { // 很C语言
-                    let groupItemNode = event.target.closest('.groupItem');
-                    let oldName = groupItemNode.getAttribute('groupName');
-                    storageCenter.renameGroup(oldName, userInput);
-                    refreshGroupList();
-                    refreshCurrentGroupName();
-                }
-            }
-            else { alert('分组名称不能为空') }
-        }
-    }
-    if (event.target.classList.contains('deleteGroup')) {
-        let groupItemNode = event.target.closest('.groupItem');
-        let groupName = groupItemNode.getAttribute('groupName');
-        let number = storageCenter.userData.taskItemData.filter(e => e.group === groupName).length;
-        if (confirm(`确认删除${groupName}分组？这将会删除该分组中共计${number}个事项。`)) {
-            storageCenter.deleteGroup(groupName);
-            refreshBody();
-        }
-    }
     if (event.target.classList.contains('isDone')) {
         let taskItemNode = event.target.closest('.taskItem');
         let timestamp = Number(taskItemNode.getAttribute('timestamp'));
@@ -313,6 +338,12 @@ document.body.addEventListener('click', function (event) {
     if (event.target.classList.contains('groupName')) {
         storageCenter.userStatus.currentGroup = event.target.textContent;
         storageCenter.userStatus.focusingTask = null;
+        if (window.matchMedia('(orientation: portrait)')) {
+            for (element of document.querySelectorAll('[isSwitchingGroupsInPortrait="true"]')) {
+                element.setAttribute('isSwitchingGroupsInPortrait', 'false');
+            }
+
+        }
         refreshCurrentGroupName();
         refreshTaskContainer();
     }
@@ -419,11 +450,12 @@ function createElement_groupItem(groupItemObject) {
     <div class="groupItem" groupName="${groupItemObject.name}">
     <div class="groupName">${groupItemObject.name}</div>
     <div class="groupTrailing">
-        <div class="groupOptions">
-            <button class="editGroup">编辑</button>
-            <button class="deleteGroup">删除</button>
-        </div>
         <div class="taskNumber">${insideTaskNumber()}</div>
+    <select class="groupOptions" name="dropDownGroupOptions">
+        <option value="edit">编辑</option>
+        <option class="renameGroup" value="rename">重命名</option>
+        <option class="deleteGroup" value="delete">删除</option>
+    </select>
     </div>
     </div>
     `
