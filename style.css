@@ -11,25 +11,6 @@
     overflow: scroll;
 }
 
-/* #sidebar {
-    position: fixed;
-    top: 0px;
-    left: 0px;
-    width: 320px;
-    height: 100vh;
-    border-right: 1px solid;
-}
-
-#right {
-    padding: 0 0 0 320px;
-} */
-
-/* 隐藏 body 超出 <html> 的多余部分 */
-/* html {
-    overflow: hidden;
-} */
-
-/* flexbox */
 body {
     /* 为了去除 body 外的 margin 而导致的滚动条*/
     box-sizing: border-box;
@@ -54,7 +35,6 @@ body {
 @media (orientation: portrait) {
     #sidebar, #right {
         inline-size: 100%;
-
         block-size: 100%;
     }
 
@@ -81,7 +61,7 @@ body {
 @media (orientation: landscape) {
     #expandGroups {
         /* visibility: hidden; */
-        display: none !important;
+        display: none;
     }
 
     /* .groupOptions {
@@ -95,11 +75,8 @@ body {
 
 
 #topBar {
+    display: flex;
     position: relative;
-}
-
-#topBar>* {
-    display: inline;
 }
 
 #generalOptions {
