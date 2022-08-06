@@ -1,4 +1,4 @@
-let storageCenter;
+let storageCenter = null;
 function StorageCenter(obj) {
     this.userData = {
         taskItemData: [],
@@ -233,7 +233,7 @@ window.addEventListener('orientationchange', function () {
     }
 })
 let globalTest;
-document.body.addEventListener('change', (event) => {
+document.body.addEventListener('input', (event) => {
     if (event.target.tagName === 'SELECT') {
         if (event.target.name === 'dropDownGroupOptions') {
             switch (event.target.value) {
@@ -273,7 +273,7 @@ document.body.addEventListener('change', (event) => {
                     break;
             }
         }
-        event.target.value = 'edit'
+        event.target.value = 'edit' //让下拉菜单回到第一个option
     }
 });
 // 听说这是公交车？
